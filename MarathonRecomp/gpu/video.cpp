@@ -5095,7 +5095,7 @@ static RenderPipeline* CreateGraphicsPipelineInRenderThread(PipelineState pipeli
 
     return pipeline.get();
 }
-{
+{}
     SanitizePipelineState(pipelineState);
 
     XXH64_hash_t hash = XXH3_64bits(&pipelineState, sizeof(pipelineState));
