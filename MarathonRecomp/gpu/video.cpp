@@ -5047,6 +5047,57 @@ static RenderPipeline* CreateGraphicsPipelineInRenderThread(PipelineState pipeli
 {
     SanitizePipelineState(pipelineState);
 
+    // === MALI-G57 FIX (Samsung Galaxy Tab A9 SM-X110) ===
+    // Completely bypass the g_pipelines cache on Mali.
+    // The map can hold pipelines created with wrong vertexStrides.
+    if (g_isMali)
+    {
+        return CreateGraphicsPipeline(pipelineState).release();
+    }
+    // === END MALI FIX ===
+
+    XXH64_hash_t hash = XXH3_64bits(&pipelineState, sizeof(pipelineState));
+    auto& pipeline = g_pipelines[hash];
+    if (pipeline == nullptr)
+    {
+        pipeline = CreateGraphicsPipeline(pipelineState);
+
+#ifdef ASYNC_PSO_DEBUG
+        bool loading = *SWA::SGlobals::ms_IsLoading;
+
+        if (loading)
+            ++g_pipelinesCreatedAsynchronously;
+        else
+            ++g_pipelinesCreatedInRenderThread;
+
+        pipeline->setName(fmt::format("{} {} {} {:X}", loading ? "ASYNC" : "",
+            pipelineState.vertexShader->name, pipelineState.pixelShader != nullptr ? pipelineState.pixelShader->name : "<none>", hash));
+        
+        if (!loading)
+        {
+            std::lock_guard lock(g_debugMutex);
+            g_pipelineDebugText = fmt::format(
+                "PipelineState {:X}:\n"
+                "  vertexShader: {}\n"
+                "  pixelShader: {}\n"
+                "  vertexDeclaration: {:X}\n"
+                "  zEnable: {}\n",
+                hash,
+                pipelineState.vertexShader ? pipelineState.vertexShader->name : "<null>",
+                pipelineState.pixelShader ? pipelineState.pixelShader->name : "<null>",
+                pipelineState.vertexDeclaration ? pipelineState.vertexDeclaration->hash : 0,
+                pipelineState.zEnable);
+        }
+#endif
+
+        return pipeline.get();
+    }
+
+    return pipeline.get();
+}
+{
+    SanitizePipelineState(pipelineState);
+
     XXH64_hash_t hash = XXH3_64bits(&pipelineState, sizeof(pipelineState));
     auto& pipeline = g_pipelines[hash];
     if (pipeline == nullptr)
