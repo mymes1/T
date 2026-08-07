@@ -559,7 +559,9 @@ static std::vector<PipelineTask> g_pipelineTaskQueue;
 
 static const PipelineState g_pipelineStateCache[] =
 {
+#if !defined(__ANDROID__)
 #include "cache/pipeline_state_cache.h"
+#endif
 };
 
 #include "cache/vertex_element_cache.h"
