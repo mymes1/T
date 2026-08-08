@@ -3640,7 +3640,17 @@ static void SetRootDescriptor(const UploadAllocation& allocation, size_t index)
 }
 
 static void ProcExecuteCommandList(const RenderCommand& cmd)
+{    static void ProcExecuteCommandList(const RenderCommand& cmd)
 {    
+    if (g_isMali)
+    {
+        // Clear pipeline cache every frame on Mali-G57.
+        // This guarantees every pipeline is created with correct uint32_t vertexStrides.
+        g_pipelines.clear();
+    }
+
+    if (g_swapChainValid)
+    {
     if (g_swapChainValid)
     {
         auto swapChainTexture = g_swapChain->getTexture(g_backBufferIndex);
